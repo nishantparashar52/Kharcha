@@ -1,0 +1,1510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Restaurant Manager - Daily Tracker</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --primary: #e74c3c;
+            --secondary: #2ecc71;
+            --accent: #f39c12;
+            --dark: #2c3e50;
+            --light: #ecf0f1;
+            --danger: #e74c3c;
+            --success: #27ae60;
+            --warning: #f39c12;
+            --info: #3498db;
+            --shadow: 0 4px 6px rgba(0,0,0,0.1);
+            --radius: 12px;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            color: var(--dark);
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--dark) 0%, #34495e 100%);
+            color: white;
+            padding: 25px;
+            border-radius: var(--radius);
+            margin-bottom: 25px;
+            box-shadow: var(--shadow);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        header h1 {
+            font-size: 1.8rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .date-display {
+            font-size: 1.1rem;
+            background: rgba(255,255,255,0.15);
+            padding: 8px 16px;
+            border-radius: 20px;
+        }
+
+        /* Summary Cards */
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        .card {
+            background: white;
+            border-radius: var(--radius);
+            padding: 25px;
+            box-shadow: var(--shadow);
+            transition: transform 0.3s, box-shadow 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 15px rgba(0,0,0,0.15);
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 5px;
+            height: 100%;
+        }
+
+        .card.earnings::before { background: var(--success); }
+        .card.expenses::before { background: var(--danger); }
+        .card.profit::before { background: var(--info); }
+        .card.items::before { background: var(--accent); }
+
+        .card-icon {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .card.earnings .card-icon { color: var(--success); }
+        .card.expenses .card-icon { color: var(--danger); }
+        .card.profit .card-icon { color: var(--info); }
+        .card.items .card-icon { color: var(--accent); }
+
+        .card h3 {
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #7f8c8d;
+            margin-bottom: 8px;
+        }
+
+        .card .amount {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--dark);
+        }
+
+        .card .trend {
+            font-size: 0.85rem;
+            margin-top: 8px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .trend.up { color: var(--success); }
+        .trend.down { color: var(--danger); }
+
+        /* Input Section */
+        .input-section {
+            background: white;
+            border-radius: var(--radius);
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: var(--shadow);
+        }
+
+        .section-title {
+            font-size: 1.3rem;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--light);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .form-group label {
+            font-weight: 600;
+            color: var(--dark);
+            font-size: 0.9rem;
+        }
+
+        .form-group input, .form-group select {
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary) 0%, #c0392b 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(231, 76, 60, 0.4);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, var(--success) 0%, #219a52 100%);
+            color: white;
+        }
+
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(39, 174, 96, 0.4);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, var(--danger) 0%, #c0392b 100%);
+            color: white;
+        }
+
+        .items-list, .expenses-list {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 10px;
+            margin-top: 10px;
+        }
+
+        .list-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            margin-bottom: 6px;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .list-item button {
+            background: var(--danger);
+            color: white;
+            border: none;
+            padding: 4px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+
+        /* Charts Section */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 25px;
+            margin-bottom: 25px;
+        }
+
+        .chart-container {
+            background: white;
+            border-radius: var(--radius);
+            padding: 25px;
+            box-shadow: var(--shadow);
+        }
+
+        .chart-container.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .chart-wrapper {
+            position: relative;
+            height: 300px;
+            margin-top: 15px;
+        }
+
+        .chart-wrapper.large {
+            height: 400px;
+        }
+
+        /* Data Tables */
+        .table-container {
+            background: white;
+            border-radius: var(--radius);
+            padding: 25px;
+            box-shadow: var(--shadow);
+            margin-bottom: 25px;
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        th {
+            background: #f8f9fa;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            letter-spacing: 0.5px;
+        }
+
+        tr:hover {
+            background: #f8f9fa;
+        }
+
+        .badge {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .badge-expense { background: #ffebee; color: var(--danger); }
+        .badge-earning { background: #e8f5e9; color: var(--success); }
+
+        /* Filters */
+        .filters {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .filter-group label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #7f8c8d;
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 10px;
+        }
+
+        .tab {
+            padding: 10px 20px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            color: #7f8c8d;
+            border-radius: 8px 8px 0 0;
+            transition: all 0.3s;
+        }
+
+        .tab.active {
+            color: var(--primary);
+            background: #ffebee;
+        }
+
+        .tab:hover {
+            color: var(--primary);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+            header {
+                flex-direction: column;
+                text-align: center;
+            }
+            .summary-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
+        /* Consumption Heatmap Grid */
+        .heatmap-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 8px;
+            margin-top: 15px;
+        }
+
+        .heatmap-cell {
+            aspect-ratio: 1;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .heatmap-cell:hover {
+            transform: scale(1.1);
+            z-index: 10;
+        }
+
+        .heatmap-cell .day-name {
+            font-size: 0.65rem;
+            opacity: 0.8;
+        }
+
+        .heatmap-cell .day-value {
+            font-size: 0.9rem;
+        }
+
+        .legend {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 15px;
+            justify-content: center;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.8rem;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header>
+            <h1>🍽️ Restaurant Manager</h1>
+            <div class="date-display" id="currentDate"></div>
+        </header>
+
+        <!-- Summary Cards -->
+        <div class="summary-grid">
+            <div class="card earnings">
+                <div class="card-icon">💰</div>
+                <h3>Today's Earnings</h3>
+                <div class="amount" id="todayEarnings">₹0</div>
+                <div class="trend up">
+                    <span>↑</span> <span id="earningTrend">0%</span> vs yesterday
+                </div>
+            </div>
+            <div class="card expenses">
+                <div class="card-icon">📉</div>
+                <h3>Today's Expenses</h3>
+                <div class="amount" id="todayExpenses">₹0</div>
+                <div class="trend down">
+                    <span>↓</span> <span id="expenseTrend">0%</span> vs yesterday
+                </div>
+            </div>
+            <div class="card profit">
+                <div class="card-icon">📊</div>
+                <h3>Net Profit</h3>
+                <div class="amount" id="todayProfit">₹0</div>
+                <div class="trend" id="profitTrend">
+                    <span>=</span> <span>Break even</span>
+                </div>
+            </div>
+            <div class="card items">
+                <div class="card-icon">🍕</div>
+                <h3>Items Sold Today</h3>
+                <div class="amount" id="todayItems">0</div>
+                <div class="trend up">
+                    <span>📦</span> <span id="topItem">-</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Input Section -->
+        <div class="input-section">
+            <div class="tabs">
+                <button class="tab active" onclick="switchTab('sales')">🛒 Daily Sales Entry</button>
+                <button class="tab" onclick="switchTab('expenses')">💸 Expense Entry</button>
+            </div>
+
+            <!-- Sales Tab -->
+            <div id="sales-tab" class="tab-content active">
+                <div class="section-title">🛒 Record Daily Sales</div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Date</label>
+                        <input type="date" id="saleDate" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Item Name</label>
+                        <input type="text" id="itemName" placeholder="e.g., Chicken Biryani" list="itemSuggestions">
+                        <datalist id="itemSuggestions">
+                            <option value="Chicken Biryani">
+                            <option value="Paneer Tikka">
+                            <option value="Butter Naan">
+                            <option value="Veg Fried Rice">
+                            <option value="Mutton Curry">
+                            <option value="Dal Makhani">
+                            <option value="Tandoori Chicken">
+                            <option value="Gulab Jamun">
+                        </datalist>
+                    </div>
+                    <div class="form-group">
+                        <label>Quantity Sold</label>
+                        <input type="number" id="itemQty" placeholder="e.g., 5" min="1">
+                    </div>
+                    <div class="form-group">
+                        <label>Price per Unit (₹)</label>
+                        <input type="number" id="itemPrice" placeholder="e.g., 250" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label>Total Amount (Auto)</label>
+                        <input type="number" id="itemTotal" readonly placeholder="Auto-calculated">
+                    </div>
+                    <div class="form-group" style="display: flex; align-items: flex-end;">
+                        <button class="btn btn-success" onclick="addSaleItem()">
+                            ➕ Add Item
+                        </button>
+                    </div>
+                </div>
+
+                <div class="items-list" id="saleItemsList">
+                    <p style="color: #7f8c8d; text-align: center; padding: 20px;">No items added yet. Add items above.</p>
+                </div>
+
+                <div style="margin-top: 15px; text-align: right;">
+                    <button class="btn btn-primary" onclick="saveDailySales()">
+                        💾 Save Daily Sales Record
+                    </button>
+                </div>
+            </div>
+
+            <!-- Expenses Tab -->
+            <div id="expenses-tab" class="tab-content">
+                <div class="section-title">💸 Record Expenses</div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Date</label>
+                        <input type="date" id="expenseDate" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Expense Category</label>
+                        <select id="expenseCategory">
+                            <option value="">Select Category</option>
+                            <option value="ingredients">🥘 Raw Ingredients</option>
+                            <option value="gas">⛽ Gas Cylinder</option>
+                            <option value="utilities">💡 Utilities (Electric/Water)</option>
+                            <option value="rent">🏠 Rent</option>
+                            <option value="salary">👥 Staff Salary</option>
+                            <option value="cleaning">🧹 Cleaning Supplies</option>
+                            <option value="packaging">📦 Packaging</option>
+                            <option value="maintenance">🔧 Maintenance</option>
+                            <option value="other">📋 Other</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Description</label>
+                        <input type="text" id="expenseDesc" placeholder="e.g., LPG Cylinder 15kg">
+                    </div>
+                    <div class="form-group">
+                        <label>Amount (₹)</label>
+                        <input type="number" id="expenseAmount" placeholder="e.g., 1200" min="0">
+                    </div>
+                    <div class="form-group" style="display: flex; align-items: flex-end;">
+                        <button class="btn btn-danger" onclick="addExpense()">
+                            ➕ Add Expense
+                        </button>
+                    </div>
+                </div>
+
+                <div class="expenses-list" id="expensesList">
+                    <p style="color: #7f8c8d; text-align: center; padding: 20px;">No expenses added yet. Add expenses above.</p>
+                </div>
+
+                <div style="margin-top: 15px; text-align: right;">
+                    <button class="btn btn-primary" onclick="saveDailyExpenses()">
+                        💾 Save Expense Record
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Section -->
+        <div class="charts-grid">
+            <!-- Earnings vs Expenses Trend -->
+            <div class="chart-container full-width">
+                <div class="section-title">📈 Daily Earnings vs Expenses Trend</div>
+                <div class="filters">
+                    <div class="filter-group">
+                        <label>View Period</label>
+                        <select id="trendPeriod" onchange="updateTrendChart()">
+                            <option value="7">Last 7 Days</option>
+                            <option value="30">Last 30 Days</option>
+                            <option value="90">Last 3 Months</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="chart-wrapper large">
+                    <canvas id="trendChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Top Selling Items -->
+            <div class="chart-container">
+                <div class="section-title">🏆 Top Selling Items (This Month)</div>
+                <div class="chart-wrapper">
+                    <canvas id="topItemsChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Expense Breakdown -->
+            <div class="chart-container">
+                <div class="section-title">🥧 Expense Breakdown by Category</div>
+                <div class="chart-wrapper">
+                    <canvas id="expensePieChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Weekly Consumption Heatmap -->
+            <div class="chart-container full-width">
+                <div class="section-title">🔥 Item Consumption Heatmap (Day-wise)</div>
+                <div id="consumptionHeatmap"></div>
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #e8f5e9;"></div>
+                        <span>Low</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #81c784;"></div>
+                        <span>Medium</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #4caf50;"></div>
+                        <span>High</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #1b5e20;"></div>
+                        <span>Very High</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Weekly Comparison -->
+            <div class="chart-container">
+                <div class="section-title">📊 Weekly Earnings Comparison</div>
+                <div class="chart-wrapper">
+                    <canvas id="weeklyChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Monthly Trend -->
+            <div class="chart-container">
+                <div class="section-title">📅 Monthly Profit Trend</div>
+                <div class="chart-wrapper">
+                    <canvas id="monthlyChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Data Tables -->
+        <div class="table-container">
+            <div class="section-title">📋 Recent Transactions</div>
+            <div class="tabs">
+                <button class="tab active" onclick="switchTableTab('sales-table')">Sales Records</button>
+                <button class="tab" onclick="switchTableTab('expenses-table')">Expense Records</button>
+            </div>
+
+            <div id="sales-table" class="tab-content active">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Item</th>
+                            <th>Qty</th>
+                            <th>Unit Price</th>
+                            <th>Total</th>
+                            <th>Day</th>
+                        </tr>
+                    </thead>
+                    <tbody id="salesTableBody">
+                        <!-- Dynamic content -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div id="expenses-table" class="tab-content">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Category</th>
+                            <th>Description</th>
+                            <th>Amount</th>
+                            <th>Type</th>
+                        </tr>
+                    </thead>
+                    <tbody id="expensesTableBody">
+                        <!-- Dynamic content -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==================== DATA STORE ====================
+        // In production, replace this with API calls to your backend
+        let salesData = JSON.parse(localStorage.getItem('restaurant_sales')) || [];
+        let expensesData = JSON.parse(localStorage.getItem('restaurant_expenses')) || [];
+        let tempSaleItems = [];
+        let tempExpenses = [];
+
+        // Chart instances
+        let trendChart, topItemsChart, expensePieChart, weeklyChart, monthlyChart;
+
+        // ==================== INITIALIZATION ====================
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set today's date
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('currentDate').textContent = new Date().toLocaleDateString('en-IN', {
+                weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+            });
+            document.getElementById('saleDate').value = today;
+            document.getElementById('expenseDate').value = today;
+
+            // Initialize with demo data if empty
+            if (salesData.length === 0 && expensesData.length === 0) {
+                generateDemoData();
+            }
+
+            // Setup auto-calculation
+            document.getElementById('itemQty').addEventListener('input', calculateTotal);
+            document.getElementById('itemPrice').addEventListener('input', calculateTotal);
+
+            // Initial render
+            updateDashboard();
+        });
+
+        // ==================== DEMO DATA GENERATOR ====================
+        function generateDemoData() {
+            const items = ['Chicken Biryani', 'Paneer Tikka', 'Butter Naan', 'Veg Fried Rice', 
+                           'Mutton Curry', 'Dal Makhani', 'Tandoori Chicken', 'Gulab Jamun'];
+            const categories = ['ingredients', 'gas', 'utilities', 'rent', 'salary', 'cleaning', 'packaging'];
+            const expenseDescs = {
+                'ingredients': ['Vegetables', 'Chicken', 'Paneer', 'Rice', 'Spices'],
+                'gas': ['LPG Cylinder 15kg', 'LPG Cylinder 5kg'],
+                'utilities': ['Electricity Bill', 'Water Bill'],
+                'rent': ['Monthly Rent'],
+                'salary': ['Chef Salary', 'Helper Salary', 'Waiter Salary'],
+                'cleaning': ['Detergent', 'Dishwash Liquid', 'Trash Bags'],
+                'packaging': ['Food Boxes', 'Plastic Spoons', 'Carry Bags']
+            };
+
+            // Generate last 30 days of data
+            for (let i = 29; i >= 0; i--) {
+                const date = new Date();
+                date.setDate(date.getDate() - i);
+                const dateStr = date.toISOString().split('T')[0];
+
+                // Generate 3-8 sales per day
+                const numSales = Math.floor(Math.random() * 6) + 3;
+                for (let j = 0; j < numSales; j++) {
+                    const item = items[Math.floor(Math.random() * items.length)];
+                    const qty = Math.floor(Math.random() * 10) + 1;
+                    const price = Math.floor(Math.random() * 200) + 50;
+                    salesData.push({
+                        id: Date.now() + Math.random(),
+                        date: dateStr,
+                        item: item,
+                        qty: qty,
+                        price: price,
+                        total: qty * price
+                    });
+                }
+
+                // Generate 2-4 expenses per day
+                const numExpenses = Math.floor(Math.random() * 3) + 2;
+                for (let j = 0; j < numExpenses; j++) {
+                    const cat = categories[Math.floor(Math.random() * categories.length)];
+                    const desc = expenseDescs[cat][Math.floor(Math.random() * expenseDescs[cat].length)];
+                    const amount = Math.floor(Math.random() * 1000) + 100;
+                    expensesData.push({
+                        id: Date.now() + Math.random(),
+                        date: dateStr,
+                        category: cat,
+                        description: desc,
+                        amount: amount
+                    });
+                }
+            }
+
+            saveToStorage();
+        }
+
+        // ==================== UTILITY FUNCTIONS ====================
+        function calculateTotal() {
+            const qty = parseFloat(document.getElementById('itemQty').value) || 0;
+            const price = parseFloat(document.getElementById('itemPrice').value) || 0;
+            document.getElementById('itemTotal').value = qty * price;
+        }
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+
+            event.target.classList.add('active');
+            document.getElementById(tabName + '-tab').classList.add('active');
+        }
+
+        function switchTableTab(tabName) {
+            document.querySelectorAll('.table-container .tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.table-container .tab-content').forEach(t => t.classList.remove('active'));
+
+            event.target.classList.add('active');
+            document.getElementById(tabName).classList.add('active');
+        }
+
+        function saveToStorage() {
+            localStorage.setItem('restaurant_sales', JSON.stringify(salesData));
+            localStorage.setItem('restaurant_expenses', JSON.stringify(expensesData));
+        }
+
+        function formatCurrency(amount) {
+            return '₹' + amount.toLocaleString('en-IN');
+        }
+
+        function getDayName(dateStr) {
+            return new Date(dateStr).toLocaleDateString('en-IN', { weekday: 'short' });
+        }
+
+        // ==================== ADD ITEMS ====================
+        function addSaleItem() {
+            const item = document.getElementById('itemName').value;
+            const qty = parseInt(document.getElementById('itemQty').value);
+            const price = parseFloat(document.getElementById('itemPrice').value);
+
+            if (!item || !qty || !price) {
+                alert('Please fill all fields');
+                return;
+            }
+
+            tempSaleItems.push({ item, qty, price, total: qty * price });
+            renderTempSaleItems();
+
+            // Clear inputs
+            document.getElementById('itemName').value = '';
+            document.getElementById('itemQty').value = '';
+            document.getElementById('itemPrice').value = '';
+            document.getElementById('itemTotal').value = '';
+        }
+
+        function renderTempSaleItems() {
+            const container = document.getElementById('saleItemsList');
+            if (tempSaleItems.length === 0) {
+                container.innerHTML = '<p style="color: #7f8c8d; text-align: center; padding: 20px;">No items added yet. Add items above.</p>';
+                return;
+            }
+
+            container.innerHTML = tempSaleItems.map((item, index) => `
+                <div class="list-item">
+                    <span><strong>${item.item}</strong> - ${item.qty} x ₹${item.price} = ₹${item.total}</span>
+                    <button onclick="removeTempSaleItem(${index})">Remove</button>
+                </div>
+            `).join('');
+        }
+
+        function removeTempSaleItem(index) {
+            tempSaleItems.splice(index, 1);
+            renderTempSaleItems();
+        }
+
+        function saveDailySales() {
+            const date = document.getElementById('saleDate').value;
+            if (!date || tempSaleItems.length === 0) {
+                alert('Please add items and select a date');
+                return;
+            }
+
+            tempSaleItems.forEach(item => {
+                salesData.push({
+                    id: Date.now() + Math.random(),
+                    date: date,
+                    item: item.item,
+                    qty: item.qty,
+                    price: item.price,
+                    total: item.total
+                });
+            });
+
+            saveToStorage();
+            tempSaleItems = [];
+            renderTempSaleItems();
+            updateDashboard();
+            alert('Sales saved successfully!');
+        }
+
+        function addExpense() {
+            const date = document.getElementById('expenseDate').value;
+            const category = document.getElementById('expenseCategory').value;
+            const desc = document.getElementById('expenseDesc').value;
+            const amount = parseFloat(document.getElementById('expenseAmount').value);
+
+            if (!date || !category || !desc || !amount) {
+                alert('Please fill all fields');
+                return;
+            }
+
+            tempExpenses.push({ date, category, description: desc, amount });
+            renderTempExpenses();
+
+            document.getElementById('expenseCategory').value = '';
+            document.getElementById('expenseDesc').value = '';
+            document.getElementById('expenseAmount').value = '';
+        }
+
+        function renderTempExpenses() {
+            const container = document.getElementById('expensesList');
+            if (tempExpenses.length === 0) {
+                container.innerHTML = '<p style="color: #7f8c8d; text-align: center; padding: 20px;">No expenses added yet. Add expenses above.</p>';
+                return;
+            }
+
+            const catEmojis = {
+                'ingredients': '🥘', 'gas': '⛽', 'utilities': '💡', 'rent': '🏠',
+                'salary': '👥', 'cleaning': '🧹', 'packaging': '📦', 'maintenance': '🔧', 'other': '📋'
+            };
+
+            container.innerHTML = tempExpenses.map((exp, index) => `
+                <div class="list-item">
+                    <span>${catEmojis[exp.category] || '📋'} <strong>${exp.description}</strong> - ${formatCurrency(exp.amount)}</span>
+                    <button onclick="removeTempExpense(${index})">Remove</button>
+                </div>
+            `).join('');
+        }
+
+        function removeTempExpense(index) {
+            tempExpenses.splice(index, 1);
+            renderTempExpenses();
+        }
+
+        function saveDailyExpenses() {
+            if (tempExpenses.length === 0) {
+                alert('Please add expenses first');
+                return;
+            }
+
+            tempExpenses.forEach(exp => {
+                expensesData.push({
+                    id: Date.now() + Math.random(),
+                    date: exp.date,
+                    category: exp.category,
+                    description: exp.description,
+                    amount: exp.amount
+                });
+            });
+
+            saveToStorage();
+            tempExpenses = [];
+            renderTempExpenses();
+            updateDashboard();
+            alert('Expenses saved successfully!');
+        }
+
+        // ==================== DASHBOARD UPDATE ====================
+        function updateDashboard() {
+            updateSummaryCards();
+            updateTrendChart();
+            updateTopItemsChart();
+            updateExpensePieChart();
+            updateWeeklyChart();
+            updateMonthlyChart();
+            updateConsumptionHeatmap();
+            updateTables();
+        }
+
+        function updateSummaryCards() {
+            const today = new Date().toISOString().split('T')[0];
+            const yesterday = new Date();
+            yesterday.setDate(yesterday.getDate() - 1);
+            const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+            // Today's data
+            const todaySales = salesData.filter(s => s.date === today);
+            const todayExp = expensesData.filter(e => e.date === today);
+
+            const todayEarnings = todaySales.reduce((sum, s) => sum + s.total, 0);
+            const todayExpenses = todayExp.reduce((sum, e) => sum + e.amount, 0);
+            const todayProfit = todayEarnings - todayExpenses;
+            const todayItems = todaySales.reduce((sum, s) => sum + s.qty, 0);
+
+            // Yesterday's data for trend
+            const yestSales = salesData.filter(s => s.date === yesterdayStr);
+            const yestExp = expensesData.filter(e => e.date === yesterdayStr);
+            const yestEarnings = yestSales.reduce((sum, s) => sum + s.total, 0);
+            const yestExpenses = yestExp.reduce((sum, e) => sum + e.amount, 0);
+
+            // Update DOM
+            document.getElementById('todayEarnings').textContent = formatCurrency(todayEarnings);
+            document.getElementById('todayExpenses').textContent = formatCurrency(todayExpenses);
+            document.getElementById('todayProfit').textContent = formatCurrency(todayProfit);
+            document.getElementById('todayItems').textContent = todayItems;
+
+            // Trends
+            const earnTrend = yestEarnings > 0 ? ((todayEarnings - yestEarnings) / yestEarnings * 100).toFixed(1) : 0;
+            const expTrend = yestExpenses > 0 ? ((todayExpenses - yestExpenses) / yestExpenses * 100).toFixed(1) : 0;
+
+            document.getElementById('earningTrend').textContent = Math.abs(earnTrend) + '%';
+            document.getElementById('expenseTrend').textContent = Math.abs(expTrend) + '%';
+
+            // Profit trend
+            const profitEl = document.getElementById('profitTrend');
+            if (todayProfit > 0) {
+                profitEl.innerHTML = '<span style="color: var(--success)">↑ Profit</span>';
+            } else if (todayProfit < 0) {
+                profitEl.innerHTML = '<span style="color: var(--danger)">↓ Loss</span>';
+            } else {
+                profitEl.innerHTML = '<span>= Break even</span>';
+            }
+
+            // Top item today
+            const itemCounts = {};
+            todaySales.forEach(s => {
+                itemCounts[s.item] = (itemCounts[s.item] || 0) + s.qty;
+            });
+            const topItem = Object.entries(itemCounts).sort((a, b) => b[1] - a[1])[0];
+            document.getElementById('topItem').textContent = topItem ? topItem[0] : '-';
+        }
+
+        // ==================== CHARTS ====================
+        function updateTrendChart() {
+            const days = parseInt(document.getElementById('trendPeriod').value);
+            const dates = [];
+            const earnings = [];
+            const expenses = [];
+            const profits = [];
+
+            for (let i = days - 1; i >= 0; i--) {
+                const date = new Date();
+                date.setDate(date.getDate() - i);
+                const dateStr = date.toISOString().split('T')[0];
+                dates.push(dateStr);
+
+                const daySales = salesData.filter(s => s.date === dateStr);
+                const dayExp = expensesData.filter(e => e.date === dateStr);
+
+                const earn = daySales.reduce((sum, s) => sum + s.total, 0);
+                const exp = dayExp.reduce((sum, e) => sum + e.amount, 0);
+
+                earnings.push(earn);
+                expenses.push(exp);
+                profits.push(earn - exp);
+            }
+
+            const ctx = document.getElementById('trendChart').getContext('2d');
+
+            if (trendChart) trendChart.destroy();
+
+            trendChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: dates.map(d => new Date(d).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })),
+                    datasets: [
+                        {
+                            label: 'Earnings',
+                            data: earnings,
+                            borderColor: '#27ae60',
+                            backgroundColor: 'rgba(39, 174, 96, 0.1)',
+                            fill: true,
+                            tension: 0.4,
+                            pointRadius: 4,
+                            pointHoverRadius: 6
+                        },
+                        {
+                            label: 'Expenses',
+                            data: expenses,
+                            borderColor: '#e74c3c',
+                            backgroundColor: 'rgba(231, 76, 60, 0.1)',
+                            fill: true,
+                            tension: 0.4,
+                            pointRadius: 4,
+                            pointHoverRadius: 6
+                        },
+                        {
+                            label: 'Profit',
+                            data: profits,
+                            borderColor: '#3498db',
+                            backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                            fill: true,
+                            tension: 0.4,
+                            pointRadius: 4,
+                            pointHoverRadius: 6,
+                            borderDash: [5, 5]
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: { usePointStyle: true, padding: 20 }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': ' + formatCurrency(context.raw);
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '₹' + value.toLocaleString('en-IN');
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateTopItemsChart() {
+            const itemTotals = {};
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+            salesData.filter(s => new Date(s.date) >= thirtyDaysAgo).forEach(s => {
+                itemTotals[s.item] = (itemTotals[s.item] || 0) + s.qty;
+            });
+
+            const sorted = Object.entries(itemTotals).sort((a, b) => b[1] - a[1]).slice(0, 8);
+
+            const ctx = document.getElementById('topItemsChart').getContext('2d');
+            if (topItemsChart) topItemsChart.destroy();
+
+            topItemsChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: sorted.map(s => s[0]),
+                    datasets: [{
+                        label: 'Quantity Sold',
+                        data: sorted.map(s => s[1]),
+                        backgroundColor: [
+                            '#e74c3c', '#e67e22', '#f39c12', '#27ae60',
+                            '#2980b9', '#8e44ad', '#c0392b', '#16a085'
+                        ],
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: { beginAtZero: true }
+                    }
+                }
+            });
+        }
+
+        function updateExpensePieChart() {
+            const catTotals = {};
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+            expensesData.filter(e => new Date(e.date) >= thirtyDaysAgo).forEach(e => {
+                catTotals[e.category] = (catTotals[e.category] || 0) + e.amount;
+            });
+
+            const catLabels = {
+                'ingredients': '🥘 Ingredients',
+                'gas': '⛽ Gas',
+                'utilities': '💡 Utilities',
+                'rent': '🏠 Rent',
+                'salary': '👥 Salary',
+                'cleaning': '🧹 Cleaning',
+                'packaging': '📦 Packaging',
+                'maintenance': '🔧 Maintenance',
+                'other': '📋 Other'
+            };
+
+            const ctx = document.getElementById('expensePieChart').getContext('2d');
+            if (expensePieChart) expensePieChart.destroy();
+
+            expensePieChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(catTotals).map(k => catLabels[k] || k),
+                    datasets: [{
+                        data: Object.values(catTotals),
+                        backgroundColor: [
+                            '#e74c3c', '#e67e22', '#f39c12', '#27ae60',
+                            '#2980b9', '#8e44ad', '#c0392b', '#16a085', '#7f8c8d'
+                        ],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: {
+                                generateLabels: function(chart) {
+                                    const data = chart.data;
+                                    return data.labels.map((label, i) => ({
+                                        text: label + ' - ' + formatCurrency(data.datasets[0].data[i]),
+                                        fillStyle: data.datasets[0].backgroundColor[i],
+                                        hidden: false,
+                                        index: i
+                                    }));
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateWeeklyChart() {
+            const weekData = {};
+            const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+            // Initialize all days
+            days.forEach(d => weekData[d] = { earnings: 0, expenses: 0 });
+
+            salesData.forEach(s => {
+                const day = days[new Date(s.date).getDay()];
+                weekData[day].earnings += s.total;
+            });
+
+            expensesData.forEach(e => {
+                const day = days[new Date(e.date).getDay()];
+                weekData[day].expenses += e.amount;
+            });
+
+            const ctx = document.getElementById('weeklyChart').getContext('2d');
+            if (weeklyChart) weeklyChart.destroy();
+
+            weeklyChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: days,
+                    datasets: [
+                        {
+                            label: 'Earnings',
+                            data: days.map(d => weekData[d].earnings),
+                            backgroundColor: '#27ae60',
+                            borderRadius: 6
+                        },
+                        {
+                            label: 'Expenses',
+                            data: days.map(d => weekData[d].expenses),
+                            backgroundColor: '#e74c3c',
+                            borderRadius: 6
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '₹' + (value / 1000).toFixed(0) + 'k';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateMonthlyChart() {
+            const monthData = {};
+
+            salesData.forEach(s => {
+                const month = new Date(s.date).toLocaleDateString('en-IN', { month: 'short', year: '2-digit' });
+                if (!monthData[month]) monthData[month] = { earnings: 0, expenses: 0 };
+                monthData[month].earnings += s.total;
+            });
+
+            expensesData.forEach(e => {
+                const month = new Date(e.date).toLocaleDateString('en-IN', { month: 'short', year: '2-digit' });
+                if (!monthData[month]) monthData[month] = { earnings: 0, expenses: 0 };
+                monthData[month].expenses += e.amount;
+            });
+
+            const sortedMonths = Object.keys(monthData).sort((a, b) => {
+                return new Date(a) - new Date(b);
+            });
+
+            const profits = sortedMonths.map(m => monthData[m].earnings - monthData[m].expenses);
+
+            const ctx = document.getElementById('monthlyChart').getContext('2d');
+            if (monthlyChart) monthlyChart.destroy();
+
+            monthlyChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: sortedMonths,
+                    datasets: [{
+                        label: 'Monthly Profit',
+                        data: profits,
+                        borderColor: '#3498db',
+                        backgroundColor: profits.map(p => p >= 0 ? 'rgba(52, 152, 219, 0.2)' : 'rgba(231, 76, 60, 0.2)'),
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 6,
+                        pointBackgroundColor: profits.map(p => p >= 0 ? '#27ae60' : '#e74c3c')
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            ticks: {
+                                callback: function(value) {
+                                    return '₹' + (value / 1000).toFixed(0) + 'k';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateConsumptionHeatmap() {
+            const container = document.getElementById('consumptionHeatmap');
+            const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            const itemTotals = {};
+
+            salesData.forEach(s => {
+                const day = days[new Date(s.date).getDay()];
+                if (!itemTotals[s.item]) itemTotals[s.item] = {};
+                itemTotals[s.item][day] = (itemTotals[s.item][day] || 0) + s.qty;
+            });
+
+            // Get top 5 items
+            const topItems = Object.entries(itemTotals)
+                .map(([item, dayData]) => ({
+                    item,
+                    total: Object.values(dayData).reduce((a, b) => a + b, 0)
+                }))
+                .sort((a, b) => b.total - a.total)
+                .slice(0, 5)
+                .map(i => i.item);
+
+            let html = '';
+            topItems.forEach(item => {
+                html += `<div style="margin-bottom: 15px;"><strong>${item}</strong><div class="heatmap-grid">`;
+                days.forEach(day => {
+                    const value = itemTotals[item][day] || 0;
+                    const maxVal = Math.max(...Object.values(itemTotals[item]));
+                    const intensity = maxVal > 0 ? value / maxVal : 0;
+
+                    let color;
+                    if (intensity < 0.25) color = '#e8f5e9';
+                    else if (intensity < 0.5) color = '#81c784';
+                    else if (intensity < 0.75) color = '#4caf50';
+                    else color = '#1b5e20';
+
+                    const textColor = intensity > 0.5 ? 'white' : '#2c3e50';
+
+                    html += `<div class="heatmap-cell" style="background: ${color}; color: ${textColor};" title="${item} on ${day}: ${value} sold">
+                        <span class="day-name">${day}</span>
+                        <span class="day-value">${value}</span>
+                    </div>`;
+                });
+                html += '</div></div>';
+            });
+
+            container.innerHTML = html || '<p style="text-align: center; color: #7f8c8d;">No data available</p>';
+        }
+
+        function updateTables() {
+            // Sales table
+            const salesBody = document.getElementById('salesTableBody');
+            const recentSales = [...salesData].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 50);
+
+            salesBody.innerHTML = recentSales.map(s => `
+                <tr>
+                    <td>${new Date(s.date).toLocaleDateString('en-IN')}</td>
+                    <td><strong>${s.item}</strong></td>
+                    <td>${s.qty}</td>
+                    <td>${formatCurrency(s.price)}</td>
+                    <td><strong>${formatCurrency(s.total)}</strong></td>
+                    <td><span class="badge badge-earning">${getDayName(s.date)}</span></td>
+                </tr>
+            `).join('');
+
+            // Expenses table
+            const expBody = document.getElementById('expensesTableBody');
+            const recentExp = [...expensesData].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 50);
+
+            const catLabels = {
+                'ingredients': '🥘 Ingredients', 'gas': '⛽ Gas', 'utilities': '💡 Utilities',
+                'rent': '🏠 Rent', 'salary': '👥 Salary', 'cleaning': '🧹 Cleaning',
+                'packaging': '📦 Packaging', 'maintenance': '🔧 Maintenance', 'other': '📋 Other'
+            };
+
+            expBody.innerHTML = recentExp.map(e => `
+                <tr>
+                    <td>${new Date(e.date).toLocaleDateString('en-IN')}</td>
+                    <td>${catLabels[e.category] || e.category}</td>
+                    <td>${e.description}</td>
+                    <td><strong>${formatCurrency(e.amount)}</strong></td>
+                    <td><span class="badge badge-expense">Expense</span></td>
+                </tr>
+            `).join('');
+        }
+
+        // ==================== EXPORT DATA ====================
+        function exportData() {
+            const data = {
+                sales: salesData,
+                expenses: expensesData,
+                exportDate: new Date().toISOString()
+            };
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `restaurant_data_${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+        }
+
+        // Expose for console debugging
+        window.exportData = exportData;
+        window.salesData = salesData;
+        window.expensesData = expensesData;
+    </script>
+</body>
+</html>
